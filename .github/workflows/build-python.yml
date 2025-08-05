@@ -39,19 +39,19 @@ jobs:
           submodules: recursive
     
       - name: Download Linux Build Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: linux-x86_64
           path: linux
 
       - name: Download Windows Build Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: windows-x86_64
           path: windows
 
       - name: Download macOS Universal Build Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: macos-universal
           path: macos
