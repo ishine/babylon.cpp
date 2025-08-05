@@ -53,13 +53,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Download x86_64 Build Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: macos-x86_64
           path: macos-x86_64
 
       - name: Download arm64 Build Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: macos-arm64
           path: macos-arm64
