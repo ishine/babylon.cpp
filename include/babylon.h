@@ -18,9 +18,9 @@ extern "C" {
 #endif
 
 typedef struct {
-   const char* language;
-   const unsigned char use_dictionaries;
-   const unsigned char use_punctuation;
+  const char* language;
+  const unsigned char use_dictionaries;
+  const unsigned char use_punctuation;
 } babylon_g2p_options_t;
 
 BABYLON_EXPORT int babylon_g2p_init(const char* model_path, babylon_g2p_options_t options);
