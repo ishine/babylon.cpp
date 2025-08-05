@@ -54,36 +54,80 @@ if(NOT APPLE AND NOT ANDROID)
     )
 endif()
 
-# Set ONNX Runtime source directory
-set(ONNXRUNTIME_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/onnxruntime)
+set(ONNXRUNTIME_VERSION "1.18.1")
 
-if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded)
-    set(ONNX_USE_MSVC_STATIC_RUNTIME ON)
-    set(protobuf_MSVC_STATIC_RUNTIME ON)
+add_library(onnxruntime SHARED IMPORTED)
+
+if(WIN32)
+    # Windows x86-64
+    set(ONNXRUNTIME_PREFIX "onnxruntime-win-x64-${ONNXRUNTIME_VERSION}")
+    set(ONNXRUNTIME_EXT "zip")
+elseif (APPLE)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
+        # MacOS x86-64
+        set(ONNXRUNTIME_PREFIX "onnxruntime-osx-x86_64-${ONNXRUNTIME_VERSION}")
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL arm64)
+        # MacOS Apple Silicon
+        set(ONNXRUNTIME_PREFIX "onnxruntime-osx-arm64-${ONNXRUNTIME_VERSION}")
+    else()
+        message(FATAL_ERROR "Unsupported architecture for onnxruntime")
+    endif()
+    set(ONNXRUNTIME_EXT "tgz")
+else()
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
+        # Linux x86-64
+        set(ONNXRUNTIME_PREFIX "onnxruntime-linux-x64-${ONNXRUNTIME_VERSION}")
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64)
+        # Linux ARM 64-bit
+        set(ONNXRUNTIME_PREFIX "onnxruntime-linux-aarch64-${ONNXRUNTIME_VERSION}")
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL armv7l)
+        # Linux ARM 32-bit
+        set(ONNXRUNTIME_PREFIX "onnxruntime-linux-arm32-${ONNXRUNTIME_VERSION}")
+        set(ONNXRUNTIME_URL "https://github.com/synesthesiam/prebuilt-apps/releases/download/v1.0/onnxruntime-linux-arm32-${ONNXRUNTIME_VERSION}.tgz")
+    else()
+        message(FATAL_ERROR "Unsupported architecture for onnxruntime")
+    endif()
+    set(ONNXRUNTIME_EXT "tgz")
 endif()
 
-# Set ONNX Runtime options
-set(onnxruntime_BUILD_SHARED_LIB ON)
-set(onnxruntime_BUILD_UNIT_TESTS OFF)   
+if(NOT DEFINED ONNXRUNTIME_URL)
+    set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/${ONNXRUNTIME_PREFIX}.${ONNXRUNTIME_EXT}")
+endif()
 
-# Add ONNX Runtime subdirectory
-set(FETCHCONTENT_SOURCE_DIR_EIGEN "/tmp/eigen")
-set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
-add_subdirectory(${ONNXRUNTIME_SOURCE_DIR}/cmake)   
+set(DOWNLOAD_DIR "${CMAKE_CURRENT_LIST_DIR}/download")
+set(ONNXRUNTIME_FILENAME "${DOWNLOAD_DIR}/${ONNXRUNTIME_PREFIX}.${ONNXRUNTIME_EXT}")
+set(ONNXRUNTIME_SOURCE_DIR "${DOWNLOAD_DIR}/${ONNXRUNTIME_PREFIX}")
 
-# Set the output directory for the shared library
-set_target_properties(
-    onnxruntime
-    PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${BABYLON_LIB_INSTALL_DIR}
+if(NOT EXISTS "${ONNXRUNTIME_SOURCE_DIR}")
+    if(NOT EXISTS "${ONNXRUNTIME_FILENAME}")
+        # Download onnxruntime release
+        message("Downloading ${ONNXRUNTIME_URL}")
+        file(DOWNLOAD "${ONNXRUNTIME_URL}" "${ONNXRUNTIME_FILENAME}")
+    endif()
+    # Extract .zip or .tgz to a directory like lib/onnxruntime-linux-x64-1.18.1/
+    file(ARCHIVE_EXTRACT INPUT "${ONNXRUNTIME_FILENAME}" DESTINATION "${DOWNLOAD_DIR}")
+endif()
+
+# Copy all files in ${ONNXRUNTIME_DIR}/lib to the install directory
+file(
+    COPY ${ONNXRUNTIME_SOURCE_DIR}/lib/
+    DESTINATION ${BABYLON_LIB_INSTALL_DIR}
 )
+
+# Import options for onnxruntime
+if(WIN32)
+    set_target_properties(onnxruntime PROPERTIES IMPORTED_LOCATION ${BABYLON_LIB_INSTALL_DIR}/onnxruntime.dll)
+elseif(APPLE)
+    set_target_properties(onnxruntime PROPERTIES IMPORTED_LOCATION ${BABYLON_LIB_INSTALL_DIR}/libonnxruntime.dylib)
+else()
+    set_target_properties(onnxruntime PROPERTIES IMPORTED_LOCATION ${BABYLON_LIB_INSTALL_DIR}/libonnxruntime.so)
+endif()
 
 # Include ONNX Runtime headers
 target_include_directories(
     babylon
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${ONNXRUNTIME_SOURCE_DIR}/include/onnxruntime/core/session
+    ${ONNXRUNTIME_SOURCE_DIR}/include
 )
 
 target_link_directories(
